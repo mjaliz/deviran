@@ -1,0 +1,9 @@
+info:
+  contact: {}
+  description: This is the server of Deviran platform
+  license:
+    name: Apache 2.0
+  title: Deviran API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
