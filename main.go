@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	_ "github.com/mjaliz/deviran/docs"
 	"github.com/mjaliz/deviran/models"
@@ -15,13 +16,17 @@ import (
 
 func main() {
 	e := echo.New()
+	e.Validator = &models.CustomValidator{Validator: validator.New()}
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	e.POST("/sign_up", func(c echo.Context) error {
 		user := new(models.User)
 		if err := c.Bind(user); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		if err := c.Validate(user); err != nil {
 			return err
 		}
 		return c.JSON(http.StatusCreated, user)
 	})
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Info(e.Start(":1323"))
 }
