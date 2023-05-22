@@ -3,8 +3,9 @@ package main
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mjaliz/deviran/docs"
-	"github.com/mjaliz/deviran/models"
+	"github.com/mjaliz/deviran/internal/models"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"net/http"
 )
@@ -16,6 +17,7 @@ import (
 
 func main() {
 	e := echo.New()
+	e.Use(middleware.Logger())
 	e.Validator = &models.CustomValidator{Validator: validator.New()}
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 	e.POST("/sign_up", func(c echo.Context) error {
