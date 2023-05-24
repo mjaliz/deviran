@@ -3,6 +3,8 @@ package main
 import (
 	_ "github.com/mjaliz/deviran/docs"
 	"github.com/mjaliz/deviran/internal/config"
+	"github.com/mjaliz/deviran/internal/handlers"
+	"github.com/mjaliz/deviran/internal/routes"
 )
 
 // @title Deviran API
@@ -14,5 +16,7 @@ var app config.AppConfig
 
 func main() {
 	app.DB = nil
-	routes(&app)
+	repo := handlers.NewRepo(&app)
+	handlers.NewHandlers(repo)
+	routes.Routes()
 }
