@@ -18,8 +18,9 @@ type Model struct {
 type (
 	User struct {
 		Model
-		Email    string `json:"email" validate:"required"`
-		Password string `json:"password" validate:"required"`
+		Email       string `json:"email" validate:"required"`
+		Password    string `json:"password" validate:"required"`
+		PhoneNumber string `json:"phone_number,omitempty"`
 	}
 	CustomValidator struct {
 		Validator *validator.Validate
