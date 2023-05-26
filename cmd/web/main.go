@@ -4,6 +4,7 @@ import (
 	_ "github.com/mjaliz/deviran/docs"
 	"github.com/mjaliz/deviran/internal/config"
 	"github.com/mjaliz/deviran/internal/handlers"
+	"github.com/mjaliz/deviran/internal/models"
 	"github.com/mjaliz/deviran/internal/routes"
 )
 
@@ -15,7 +16,7 @@ import (
 var app config.AppConfig
 
 func main() {
-	app.DB = nil
+	app.DB = models.ConnectDB()
 	repo := handlers.NewRepo(&app)
 	handlers.NewHandlers(repo)
 	routes.Routes()

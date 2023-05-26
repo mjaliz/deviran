@@ -21,5 +21,9 @@ func (m *Repository) SignUp(c echo.Context) error {
 		log.Println("Hashing password failed")
 	}
 	user.Password = hashedPassword
+	result := m.App.DB.Create(&user)
+	if result.Error != nil {
+		log.Println("creating user in db failed!")
+	}
 	return c.JSON(http.StatusCreated, user)
 }
