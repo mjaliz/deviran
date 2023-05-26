@@ -18,7 +18,7 @@ type Model struct {
 type (
 	User struct {
 		Model
-		Email       string `json:"email" validate:"required"`
+		Email       string `json:"email" validate:"required" gorm:"unique"`
 		Password    string `json:"password" validate:"required"`
 		PhoneNumber string `json:"phone_number,omitempty"`
 	}
