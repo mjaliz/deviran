@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"github.com/labstack/echo/v4"
 	"github.com/mjaliz/deviran/internal/message"
 	"github.com/mjaliz/deviran/internal/models"
 	"github.com/mjaliz/deviran/internal/utils"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 )
@@ -18,10 +20,12 @@ func (m *Repository) SignUp(c echo.Context) error {
 		return err
 	}
 	var userDB models.User
-	result := m.App.DB.Debug().Where(&models.User{Email: user.Email}).First(&userDB)
-	if result.Error != nil {
-		log.Println("finding user in database failed", result.Error.Error())
-		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+	err := m.App.DB.Debug().Where(&models.User{Email: user.Email}).First(&userDB).Error
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Println("finding user in database failed", err.Error())
+			return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+		}
 	}
 	if userDB.Email != "" {
 		return c.JSON(http.StatusBadRequest,
@@ -33,9 +37,9 @@ func (m *Repository) SignUp(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
 	user.Password = hashedPassword
-	result = m.App.DB.Create(&user)
-	if result.Error != nil {
-		log.Println("creating user in db failed!", result.Error.Error())
+	err = m.App.DB.Create(&user).Error
+	if err != nil {
+		log.Println("creating user in db failed!", err.Error())
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
 	return c.JSON(http.StatusCreated, message.StatusOkMessage(user, ""))
