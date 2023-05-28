@@ -20,7 +20,7 @@ func (m *Repository) SignUp(c echo.Context) error {
 		return err
 	}
 	var userDB models.User
-	err := m.App.DB.Debug().Where(&models.User{Email: user.Email}).First(&userDB).Error
+	err := m.App.DB.Where(&models.User{Email: user.Email}).First(&userDB).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Println("finding user in database failed", err.Error())
