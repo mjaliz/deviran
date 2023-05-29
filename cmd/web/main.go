@@ -22,6 +22,8 @@ func main() {
 	app.RedisCtx = ctx
 	app.DB = models.ConnectDB()
 	repo := handlers.NewRepo(&app)
+	utilsRepo := utils.NewRepo(&app)
 	handlers.NewHandlers(repo)
+	utils.NewUtils(utilsRepo)
 	routes.Routes()
 }

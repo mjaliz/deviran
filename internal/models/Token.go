@@ -1,6 +1,6 @@
 package models
 
-type Token struct {
+type TokenDetails struct {
 	AccessToken  string
 	RefreshToken string
 	AccessUuid   string

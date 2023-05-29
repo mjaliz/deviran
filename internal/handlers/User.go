@@ -42,5 +42,15 @@ func (m *Repository) SignUp(c echo.Context) error {
 		log.Println("creating user in db failed!", err.Error())
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
+	ts, err := utils.CreateToken(user.ID)
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+	}
+	saveErr := utils.Repo.CreateAuth(user.ID, ts)
+	if saveErr != nil {
+		return c.JSON(http.StatusUnprocessableEntity, saveErr.Error())
+	}
+	user.AccessToken = ts.AccessToken
+	user.RefreshToken = ts.RefreshToken
 	return c.JSON(http.StatusCreated, message.StatusOkMessage(user, ""))
 }
