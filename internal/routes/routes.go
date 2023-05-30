@@ -13,7 +13,11 @@ func Routes() {
 	e.Use(middleware.Logger())
 	e.Validator = &models.CustomValidator{Validator: validator.New()}
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
 	userGroup := e.Group("/user")
 	UserSubRoutes(userGroup)
+
+	courseGroup := e.Group("/course")
+	CourseSubRoutes(courseGroup)
 	e.Logger.Info(e.Start(":1323"))
 }
