@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/mjaliz/deviran/internal/constants"
 	"github.com/mjaliz/deviran/internal/models"
 	"net/http"
 	"os"
@@ -11,6 +13,80 @@ import (
 	"strings"
 	"time"
 )
+
+// `iat`, `nbf`, `iss`, `sub` and `aud`.
+
+type JwtPayload struct {
+	ID        uuid.UUID `json:"id"`
+	UserId    int       `json:"uid"`
+	IssuedAt  time.Time `json:"iat"`
+	ExpiredAt time.Time `json:"exp"`
+}
+
+type JWTMaker struct {
+	secretKey string
+}
+
+var (
+	ErrInvalidToken = errors.New("token is invalid")
+	ErrExpiredToken = errors.New("token has expired")
+)
+
+func NewPayload(userId int) (jwt.Claims, error) {
+	tokenID, err := uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+	claims := jwt.MapClaims{}
+	claims["id"] = tokenID
+	claims["uid"] = userId
+	claims["iat"] = time.Now()
+	claims["exp"] = time.Now().Add(constants.JWTValidDuration * time.Minute)
+
+	return claims, nil
+}
+
+func NewJWTMaker(secretKey string) (*JWTMaker, error) {
+	if len(secretKey) < constants.MinSecretKeySize {
+		return nil, fmt.Errorf("invalid key size: must be at least %d characters", constants.MinSecretKeySize)
+	}
+	return &JWTMaker{secretKey}, nil
+}
+
+func (maker *JWTMaker) CreateToken(userID int) (string, error) {
+	payload, err := NewPayload(userID)
+	if err != nil {
+		return "", err
+	}
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+	return jwtToken.SignedString([]byte(maker.secretKey))
+}
+
+func (maker *JWTMaker) VerifyToken(token string) (*JwtPayload, error) {
+	keyFunc := func(token *jwt.Token) (interface{}, error) {
+		_, ok := token.Method.(*jwt.SigningMethodHMAC)
+		if !ok {
+			return nil, ErrInvalidToken
+		}
+		return []byte(maker.secretKey), nil
+	}
+
+	jwtToken, err := jwt.ParseWithClaims(token, &JwtPayload{}, keyFunc)
+	if err != nil {
+		verr, ok := err.(*jwt.ValidationError)
+		if ok && errors.Is(verr.Inner, ErrExpiredToken) {
+			return nil, ErrExpiredToken
+		}
+		return nil, ErrInvalidToken
+	}
+
+	payload, ok := jwtToken.Claims.(*Payload)
+	if !ok {
+		return nil, ErrInvalidToken
+	}
+
+	return payload, nil
+}
 
 func CreateToken(userId uint64) (*models.TokenDetails, error) {
 	t := &models.TokenDetails{}
