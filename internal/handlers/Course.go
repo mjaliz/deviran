@@ -16,14 +16,11 @@ func (m *Repository) CreateCourse(c echo.Context) error {
 	if err := c.Validate(course); err != nil {
 		return err
 	}
-	tokenAuth, err := utils.ExtractTokenMetadata(c.Request())
+	jwtPayload, err := utils.ExtractTokenMetadata(c.Request())
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, "unauthorized")
 	}
-	userId, err := utils.FetchAuth(tokenAuth)
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, "unauthorized")
-	}
-	course.UserId = userId
+
+	course.UserId = jwtPayload.UserId
 	return c.JSON(http.StatusOK, message.StatusOkMessage(course, ""))
 }
