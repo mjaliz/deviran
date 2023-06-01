@@ -4,7 +4,9 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/mjaliz/deviran/internal/constants"
+	"github.com/mjaliz/deviran/internal/message"
 	"net/http"
 	"os"
 	"strings"
@@ -72,8 +74,8 @@ func VerifyToken(token string) (*JwtPayload, error) {
 	return payload, nil
 }
 
-func ExtractToken(r *http.Request) string {
-	bearToken := r.Header.Get("Authorization")
+func ExtractToken(c echo.Context) string {
+	bearToken := c.Request().Header.Get("Authorization")
 	//normally Authorization the_token_xxx
 	strArr := strings.Split(bearToken, " ")
 	if len(strArr) == 2 {
@@ -82,11 +84,14 @@ func ExtractToken(r *http.Request) string {
 	return ""
 }
 
-func ExtractTokenMetadata(r *http.Request) (*JwtPayload, error) {
-	token := ExtractToken(r)
+func ExtractTokenMetadata(c echo.Context) (*JwtPayload, error) {
+	token := ExtractToken(c)
+	if token == "" {
+		return nil, c.JSON(http.StatusUnauthorized, message.StatusUnauthorizedMessage(""))
+	}
 	jwtPayload, err := VerifyToken(token)
 	if err != nil {
-		return nil, err
+		return nil, c.JSON(http.StatusUnauthorized, message.StatusUnauthorizedMessage(""))
 	}
 	return jwtPayload, nil
 }

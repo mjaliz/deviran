@@ -18,9 +18,15 @@ func message(status bool, data interface{}, msg string) BodyStructure {
 func StatusOkMessage(body interface{}, msg string) BodyStructure {
 	return message(true, body, msg)
 }
+
 func StatusBadRequestMessage(data interface{}, msg string) BodyStructure {
 	return message(false, data, msg)
 }
+
+func StatusUnauthorizedMessage(msg string) BodyStructure {
+	return message(false, nil, msg)
+}
+
 func StatusInternalServerErrorMessage() BodyStructure {
 	return message(false, nil, "processing your request encountered some error!")
 }

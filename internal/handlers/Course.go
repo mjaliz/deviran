@@ -16,7 +16,7 @@ func (m *Repository) CreateCourse(c echo.Context) error {
 	if err := c.Validate(course); err != nil {
 		return err
 	}
-	jwtPayload, err := utils.ExtractTokenMetadata(c.Request())
+	jwtPayload, err := utils.ExtractTokenMetadata(c)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, "unauthorized")
 	}
