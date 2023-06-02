@@ -9,7 +9,7 @@ import (
 )
 
 type Model struct {
-	ID        int            `json:"id" gorm:"primarykey"`
+	ID        int            `gorm:"primarykey"`
 	CreatedAt *time.Time     `gorm:"not null;default:now()"`
 	UpdatedAt *time.Time     `gorm:"not null;default:now()"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`

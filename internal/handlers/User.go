@@ -43,10 +43,8 @@ func (m *Repository) SignUp(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
 
-	ts, err := utils.CreateToken(user.ID)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, err.Error())
 	}
-	user.AccessToken = ts
 	return c.JSON(http.StatusCreated, message.StatusOkMessage(user, ""))
 }
