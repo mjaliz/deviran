@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/mjaliz/deviran/internal/constants"
 	"github.com/mjaliz/deviran/internal/message"
 	"github.com/mjaliz/deviran/internal/models"
-	"github.com/mjaliz/deviran/internal/utils"
 	"net/http"
 )
 
@@ -16,11 +16,7 @@ func (m *Repository) CreateCourse(c echo.Context) error {
 	if err := c.Validate(course); err != nil {
 		return err
 	}
-	jwtPayload, err := utils.ExtractTokenMetadata(c)
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, "unauthorized")
-	}
 
-	course.UserId = jwtPayload.UserId
+	course.UserId = c.Get(constants.EchoUserIDAttribute).(int)
 	return c.JSON(http.StatusOK, message.StatusOkMessage(course, ""))
 }

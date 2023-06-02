@@ -6,8 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/mjaliz/deviran/internal/constants"
-	"github.com/mjaliz/deviran/internal/message"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -20,10 +18,11 @@ type JwtPayload struct {
 }
 
 var (
-	ErrInvalidToken = errors.New("token is invalid")
+	errExtractingToken = errors.New("extracting token from header failed")
+	errInvalidToken    = errors.New("token is invalid")
 )
 
-func NewPayload(userId int) (JwtPayload, error) {
+func newPayload(userId int) (JwtPayload, error) {
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return JwtPayload{}, err
@@ -41,7 +40,7 @@ func NewPayload(userId int) (JwtPayload, error) {
 }
 
 func CreateToken(userID int) (string, error) {
-	payload, err := NewPayload(userID)
+	payload, err := newPayload(userID)
 	if err != nil {
 		return "", err
 	}
@@ -49,11 +48,11 @@ func CreateToken(userID int) (string, error) {
 	return jwtToken.SignedString([]byte(os.Getenv("JWT_KEY")))
 }
 
-func VerifyToken(token string) (*JwtPayload, error) {
+func verifyToken(token string) (*JwtPayload, error) {
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
-			return nil, ErrInvalidToken
+			return nil, errInvalidToken
 		}
 		return []byte(os.Getenv("JWT_KEY")), nil
 	}
@@ -63,18 +62,18 @@ func VerifyToken(token string) (*JwtPayload, error) {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return nil, jwt.ErrTokenExpired
 		}
-		return nil, ErrInvalidToken
+		return nil, errInvalidToken
 	}
 
 	payload, ok := jwtToken.Claims.(*JwtPayload)
 	if !ok {
-		return nil, ErrInvalidToken
+		return nil, errInvalidToken
 	}
 
 	return payload, nil
 }
 
-func ExtractToken(c echo.Context) string {
+func extractToken(c echo.Context) string {
 	bearToken := c.Request().Header.Get("Authorization")
 	//normally Authorization the_token_xxx
 	strArr := strings.Split(bearToken, " ")
@@ -85,13 +84,13 @@ func ExtractToken(c echo.Context) string {
 }
 
 func ExtractTokenMetadata(c echo.Context) (*JwtPayload, error) {
-	token := ExtractToken(c)
+	token := extractToken(c)
 	if token == "" {
-		return nil, c.JSON(http.StatusUnauthorized, message.StatusUnauthorizedMessage(""))
+		return nil, errExtractingToken
 	}
-	jwtPayload, err := VerifyToken(token)
+	jwtPayload, err := verifyToken(token)
 	if err != nil {
-		return nil, c.JSON(http.StatusUnauthorized, message.StatusUnauthorizedMessage(""))
+		return nil, err
 	}
 	return jwtPayload, nil
 }

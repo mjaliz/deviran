@@ -10,9 +10,33 @@ import (
 
 type Model struct {
 	ID        int            `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	CreatedAt *time.Time     `gorm:"not null;default:now()"`
+	UpdatedAt *time.Time     `gorm:"not null;default:now()"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+var validate = validator.New()
+
+type ErrorResponse struct {
+	Field string `json:"field"`
+	Tag   string `json:"tag"`
+	Value string `json:"value,omitempty"`
+}
+
+func ValidateStruct[T any](payload T) []*ErrorResponse {
+	var errors []*ErrorResponse
+	err := validate.Struct(payload)
+	if err != nil {
+		var fieldErr validator.FieldError
+		for _, fieldErr = range err.(validator.ValidationErrors) {
+			var element ErrorResponse
+			element.Field = fieldErr.StructNamespace()
+			element.Tag = fieldErr.Tag()
+			element.Value = fieldErr.Param()
+			errors = append(errors, &element)
+		}
+	}
+	return errors
 }
 
 type CustomValidator struct {
