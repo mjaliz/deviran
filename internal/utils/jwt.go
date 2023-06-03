@@ -39,15 +39,6 @@ func newPayload(userId int) (JwtPayload, error) {
 	return jwtPayload, nil
 }
 
-func CreateToken(userID int) (string, error) {
-	payload, err := newPayload(userID)
-	if err != nil {
-		return "", err
-	}
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
-	return jwtToken.SignedString([]byte(os.Getenv("JWT_KEY")))
-}
-
 func verifyToken(token string) (*JwtPayload, error) {
 	keyFunc := func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)

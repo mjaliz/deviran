@@ -1,50 +1,149 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/mjaliz/deviran/internal/initializers"
+	"github.com/mjaliz/deviran/internal/input"
 	"github.com/mjaliz/deviran/internal/message"
 	"github.com/mjaliz/deviran/internal/models"
+	"github.com/mjaliz/deviran/internal/output"
 	"github.com/mjaliz/deviran/internal/utils"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 )
 
 func (m *Repository) SignUp(c echo.Context) error {
-	user := new(models.User)
-	if err := c.Bind(user); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	var payload *input.SignUp
+
+	if err := c.Bind(payload); err != nil {
+		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(nil, ""))
 	}
-	if err := c.Validate(user); err != nil {
-		return err
+
+	validateErrors := models.ValidateStruct(payload)
+	if validateErrors != nil {
+		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(validateErrors, ""))
 	}
-	var userDB models.User
-	err := m.App.DB.Where(&models.User{Email: user.Email}).First(&userDB).Error
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Println("finding user in database failed", err.Error())
-			return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
-		}
+
+	if payload.Password != payload.PasswordConfirm {
+		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(nil, "password do not match"))
 	}
-	if userDB.Email != "" {
-		return c.JSON(http.StatusBadRequest,
-			message.StatusBadRequestMessage(nil, "this email is already exits!"))
-	}
-	hashedPassword, err := utils.HashPassword(user.Password)
+
+	hashedPassword, err := utils.HashPassword(payload.Password)
 	if err != nil {
 		log.Println("Hashing password failed", err.Error())
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
-	user.Password = hashedPassword
-	err = m.App.DB.Create(&user).Error
+
+	newUser := &models.User{
+		Name:        payload.Name,
+		Email:       strings.ToLower(payload.Email),
+		Password:    hashedPassword,
+		Photo:       &payload.Photo,
+		PhoneNumber: payload.PhoneNumber,
+	}
+
+	err = initializers.DB.Create(&newUser).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return c.JSON(http.StatusConflict, message.StatusConflictMessage(err.Error()))
+		}
 		log.Println("creating user in db failed!", err.Error())
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
 
-	if err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+	return c.JSON(http.StatusCreated, message.StatusOkMessage(models.FilterUserRecord(newUser), ""))
+}
+
+func SignIn(c echo.Context) error {
+	var payload *input.SignIn
+
+	if err := c.Bind(payload); err != nil {
+		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(nil, ""))
 	}
-	return c.JSON(http.StatusCreated, message.StatusOkMessage(user, ""))
+
+	validateErrors := models.ValidateStruct(payload)
+	if validateErrors != nil {
+		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(validateErrors, ""))
+	}
+
+	var user models.User
+
+	err := initializers.DB.First(&user, fmt.Sprintf("%s = ?", models.UserEmailField),
+		strings.ToLower(payload.Email)).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusForbidden, message.StatusForbiddenMessage("Invalid email or password"))
+		}
+		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+	}
+
+	err = utils.CompareHashAndPass(user.Password, payload.Password)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+	}
+
+	config, _ := initializers.LoadConfig(".")
+
+	accessTokenDetails, err := utils.CreateToken(user.ID, config.AccessTokenExpiresIn, config.AccessTokenPrivateKey)
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
+	}
+
+	refreshTokenDetails, err := utils.CreateToken(user.ID, config.RefreshTokenExpiresIn, config.RefreshTokenPrivateKey)
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
+	}
+
+	ctx := context.TODO()
+	now := time.Now()
+
+	errAccess := initializers.RedisClient.Set(ctx, accessTokenDetails.TokenUuid,
+		user.ID, time.Unix(*accessTokenDetails.ExpiresIn, 0).Sub(now)).Err()
+	if errAccess != nil {
+		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(errAccess.Error()))
+	}
+
+	errRefresh := initializers.RedisClient.Set(ctx, refreshTokenDetails.TokenUuid,
+		user.ID, time.Unix(*refreshTokenDetails.ExpiresIn, 0).Sub(now)).Err()
+	if errRefresh != nil {
+		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(errRefresh.Error()))
+	}
+
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    *accessTokenDetails.Token,
+		Path:     "/",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   false,
+		HttpOnly: true,
+		Domain:   "localhost",
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    *refreshTokenDetails.Token,
+		Path:     "/",
+		MaxAge:   config.RefreshTokenMaxAge * 60,
+		Secure:   false,
+		HttpOnly: true,
+		Domain:   "localhost",
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     "logged_in",
+		Value:    "true",
+		Path:     "/",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   false,
+		HttpOnly: false,
+		Domain:   "localhost",
+	})
+
+	return c.JSON(http.StatusOK, message.StatusOkMessage(output.SignIn{AccessToken: *accessTokenDetails.Token}, ""))
 }

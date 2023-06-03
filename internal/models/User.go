@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+const (
+	UserEmailField = "email"
+)
+
 type User struct {
 	Model
 	Name        string  `gorm:"type:varchar(100);not null"`

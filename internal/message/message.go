@@ -27,6 +27,18 @@ func StatusUnauthorizedMessage(msg string) BodyStructure {
 	return message(false, nil, msg)
 }
 
+func StatusForbiddenMessage(msg string) BodyStructure {
+	return message(false, nil, msg)
+}
+
 func StatusInternalServerErrorMessage() BodyStructure {
 	return message(false, nil, "processing your request encountered some error!")
+}
+
+func StatusConflictMessage(msg string) BodyStructure {
+	return message(false, nil, msg)
+}
+
+func StatusErrMessage(msg string) BodyStructure {
+	return message(false, nil, msg)
 }
