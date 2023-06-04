@@ -9,21 +9,21 @@ import (
 
 var (
 	RedisClient *redis.Client
-	ctx         context.Context
+	Ctx         context.Context
 )
 
 func ConnectRedis(config *Config) {
-	ctx = context.TODO()
+	Ctx = context.TODO()
 
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr: config.RedisUri,
 	})
 
-	if _, err := RedisClient.Ping(ctx).Result(); err != nil {
+	if _, err := RedisClient.Ping(Ctx).Result(); err != nil {
 		panic(err)
 	}
 
-	err := RedisClient.Set(ctx, "test", "How to Refresh Access Tokens the Right Way in Golang", 0).Err()
+	err := RedisClient.Set(Ctx, "test", "How to Refresh Access Tokens the Right Way in Golang", 0).Err()
 	if err != nil {
 		panic(err)
 	}

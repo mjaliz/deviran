@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
@@ -20,7 +19,7 @@ import (
 	"time"
 )
 
-func (m *Repository) SignUp(c echo.Context) error {
+func SignUp(c echo.Context) error {
 	var payload *input.SignUp
 
 	if err := c.Bind(payload); err != nil {
@@ -102,16 +101,15 @@ func SignIn(c echo.Context) error {
 		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
 	}
 
-	ctx := context.TODO()
 	now := time.Now()
 
-	errAccess := initializers.RedisClient.Set(ctx, accessTokenDetails.TokenUuid,
+	errAccess := initializers.RedisClient.Set(initializers.Ctx, accessTokenDetails.TokenUuid,
 		user.ID, time.Unix(*accessTokenDetails.ExpiresIn, 0).Sub(now)).Err()
 	if errAccess != nil {
 		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(errAccess.Error()))
 	}
 
-	errRefresh := initializers.RedisClient.Set(ctx, refreshTokenDetails.TokenUuid,
+	errRefresh := initializers.RedisClient.Set(initializers.Ctx, refreshTokenDetails.TokenUuid,
 		user.ID, time.Unix(*refreshTokenDetails.ExpiresIn, 0).Sub(now)).Err()
 	if errRefresh != nil {
 		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(errRefresh.Error()))
@@ -163,14 +161,13 @@ func RefreshAccessToken(c echo.Context) error {
 	}
 
 	config, _ := initializers.LoadConfig(".")
-	ctx := context.TODO()
 
 	tokenClaims, err := utils.ValidateToken(refreshToken.Value, config.RefreshTokenPublicKey)
 	if err != nil {
 		return c.JSON(http.StatusForbidden, message.StatusErrMessage(err.Error()))
 	}
 
-	userid, err := initializers.RedisClient.Get(ctx, tokenClaims.TokenUuid).Result()
+	userid, err := initializers.RedisClient.Get(initializers.Ctx, tokenClaims.TokenUuid).Result()
 	if err == redis.Nil {
 		return c.JSON(http.StatusForbidden, message.StatusErrMessage(errMessage))
 	}
@@ -193,7 +190,7 @@ func RefreshAccessToken(c echo.Context) error {
 
 	now := time.Now()
 
-	errAccess := initializers.RedisClient.Set(ctx, accessTokenDetails.TokenUuid, user.ID,
+	errAccess := initializers.RedisClient.Set(initializers.Ctx, accessTokenDetails.TokenUuid, user.ID,
 		time.Unix(*accessTokenDetails.ExpiresIn, 0).Sub(now)).Err()
 	if errAccess != nil {
 		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(errAccess.Error()))
@@ -235,7 +232,6 @@ func Logout(c echo.Context) error {
 	}
 
 	config, _ := initializers.LoadConfig(".")
-	ctx := context.TODO()
 
 	tokenClaims, err := utils.ValidateToken(refreshToken.Value, config.RefreshTokenPublicKey)
 	if err != nil {
@@ -243,7 +239,7 @@ func Logout(c echo.Context) error {
 	}
 
 	accessTokenUuid := c.Get(constants.EchoAccessTokenUuid).(string)
-	_, err = initializers.RedisClient.Del(ctx, tokenClaims.TokenUuid, accessTokenUuid).Result()
+	_, err = initializers.RedisClient.Del(initializers.Ctx, tokenClaims.TokenUuid, accessTokenUuid).Result()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}

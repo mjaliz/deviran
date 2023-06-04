@@ -1,12 +1,16 @@
 package main
 
 import (
+	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mjaliz/deviran/docs"
-	"github.com/mjaliz/deviran/internal/config"
-	"github.com/mjaliz/deviran/internal/handlers"
+	"github.com/mjaliz/deviran/internal/initializers"
+	customMiddleware "github.com/mjaliz/deviran/internal/middleware"
 	"github.com/mjaliz/deviran/internal/models"
 	"github.com/mjaliz/deviran/internal/routes"
-	"github.com/mjaliz/deviran/internal/utils"
+	echoSwagger "github.com/swaggo/echo-swagger"
+	"log"
 )
 
 // @title Deviran API
@@ -14,16 +18,25 @@ import (
 // @description This is the server of Deviran platform
 // @license.name Apache 2.0
 
-var app config.AppConfig
+func init() {
+	configs, err := initializers.LoadConfig(".")
+	if err != nil {
+		log.Fatalln("Failed to load environment variables! \n", err.Error())
+	}
+	initializers.ConnectDB(&configs)
+	initializers.ConnectRedis(&configs)
+}
 
 func main() {
-	rds, ctx := utils.RedisInit()
-	app.RedisClient = rds
-	app.RedisCtx = ctx
-	app.DB = models.ConnectDB()
-	repo := handlers.NewRepo(&app)
-	utilsRepo := utils.NewRepo(&app)
-	handlers.NewHandlers(repo)
-	utils.NewUtils(utilsRepo)
-	routes.Routes()
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Validator = &models.CustomValidator{Validator: validator.New()}
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
+	userGroup := e.Group("/user")
+	routes.UserSubRoutes(userGroup)
+
+	courseGroup := e.Group("/course", customMiddleware.DeserializeUser)
+	routes.CourseSubRoutes(courseGroup)
+	e.Logger.Info(e.Start(":1323"))
 }

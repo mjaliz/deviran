@@ -6,5 +6,5 @@ import (
 )
 
 func UserSubRoutes(user *echo.Group) {
-	user.POST("/sign_up", handlers.Repo.SignUp)
+	user.POST("/sign_up", handlers.SignUp)
 }
