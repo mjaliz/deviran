@@ -5,6 +5,7 @@ import (
 )
 
 const (
+	UserIdField    = "id"
 	UserEmailField = "email"
 )
 

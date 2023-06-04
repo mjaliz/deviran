@@ -11,6 +11,7 @@ import (
 	"github.com/mjaliz/deviran/internal/models"
 	"github.com/mjaliz/deviran/internal/output"
 	"github.com/mjaliz/deviran/internal/utils"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -146,4 +147,76 @@ func SignIn(c echo.Context) error {
 	})
 
 	return c.JSON(http.StatusOK, message.StatusOkMessage(output.SignIn{AccessToken: *accessTokenDetails.Token}, ""))
+}
+
+func RefreshAccessToken(c echo.Context) error {
+	errMessage := "could not refresh access token"
+
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+	}
+
+	if refreshToken.Value == "" {
+		return c.JSON(http.StatusForbidden, message.StatusErrMessage(errMessage))
+	}
+
+	config, _ := initializers.LoadConfig(".")
+	ctx := context.TODO()
+
+	tokenClaims, err := utils.ValidateToken(refreshToken.Value, config.RefreshTokenPublicKey)
+	if err != nil {
+		return c.JSON(http.StatusForbidden, message.StatusErrMessage(err.Error()))
+	}
+
+	userid, err := initializers.RedisClient.Get(ctx, tokenClaims.TokenUuid).Result()
+	if err == redis.Nil {
+		return c.JSON(http.StatusForbidden, message.StatusErrMessage(errMessage))
+	}
+
+	var user models.User
+
+	err = initializers.DB.First(&user, fmt.Sprintf("%s = ?", models.UserIdField), userid).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.JSON(http.StatusForbidden, message.StatusErrMessage("the user belonging to this token no logger exists"))
+		}
+		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+	}
+
+	accessTokenDetails, err := utils.CreateToken(user.ID, config.AccessTokenExpiresIn, config.AccessTokenPrivateKey)
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
+	}
+
+	now := time.Now()
+
+	errAccess := initializers.RedisClient.Set(ctx, accessTokenDetails.TokenUuid, user.ID,
+		time.Unix(*accessTokenDetails.ExpiresIn, 0).Sub(now)).Err()
+	if errAccess != nil {
+		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(errAccess.Error()))
+	}
+
+	c.SetCookie(&http.Cookie{
+		Name:     "access_token",
+		Value:    *accessTokenDetails.Token,
+		Path:     "/",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   false,
+		HttpOnly: true,
+		Domain:   "localhost",
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     "logged_in",
+		Value:    "true",
+		Path:     "/",
+		MaxAge:   config.AccessTokenMaxAge * 60,
+		Secure:   false,
+		HttpOnly: false,
+		Domain:   "localhost",
+	})
+
+	return c.JSON(http.StatusOK, message.StatusOkMessage(accessTokenDetails.Token, ""))
 }
