@@ -1,13 +1,11 @@
 package main
 
 import (
-	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mjaliz/deviran/docs"
 	"github.com/mjaliz/deviran/internal/initializers"
 	customMiddleware "github.com/mjaliz/deviran/internal/middleware"
-	"github.com/mjaliz/deviran/internal/models"
 	"github.com/mjaliz/deviran/internal/routes"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	"log"
@@ -30,7 +28,6 @@ func init() {
 func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
-	e.Validator = &models.CustomValidator{Validator: validator.New()}
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	userGroup := e.Group("/user")

@@ -2,9 +2,7 @@ package models
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
-	"net/http"
 	"time"
 )
 
@@ -37,15 +35,4 @@ func ValidateStruct[T any](payload T) []*ErrorResponse {
 		}
 	}
 	return errors
-}
-
-type CustomValidator struct {
-	Validator *validator.Validate
-}
-
-func (cv *CustomValidator) Validate(i interface{}) error {
-	if err := cv.Validator.Struct(i); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-	return nil
 }

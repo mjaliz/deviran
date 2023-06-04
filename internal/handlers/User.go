@@ -20,10 +20,10 @@ import (
 )
 
 func SignUp(c echo.Context) error {
-	var payload *input.SignUp
+	var payload input.SignUp
 
-	if err := c.Bind(payload); err != nil {
-		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(nil, ""))
+	if err := c.Bind(&payload); err != nil {
+		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(nil, err.Error()))
 	}
 
 	validateErrors := models.ValidateStruct(payload)
@@ -51,7 +51,7 @@ func SignUp(c echo.Context) error {
 
 	err = initializers.DB.Create(&newUser).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			return c.JSON(http.StatusConflict, message.StatusConflictMessage(err.Error()))
 		}
 		log.Println("creating user in db failed!", err.Error())
@@ -62,9 +62,9 @@ func SignUp(c echo.Context) error {
 }
 
 func SignIn(c echo.Context) error {
-	var payload *input.SignIn
+	var payload input.SignIn
 
-	if err := c.Bind(payload); err != nil {
+	if err := c.Bind(&payload); err != nil {
 		return c.JSON(http.StatusBadRequest, message.StatusBadRequestMessage(nil, ""))
 	}
 
@@ -224,6 +224,7 @@ func Logout(c echo.Context) error {
 
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
+		log.Println("reading refresh token from cookie failed", err.Error())
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
 

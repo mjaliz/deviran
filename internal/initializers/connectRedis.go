@@ -2,7 +2,7 @@ package initializers
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -28,5 +28,5 @@ func ConnectRedis(config *Config) {
 		panic(err)
 	}
 
-	fmt.Println("✅ Redis client connected successfully...")
+	log.Println("✅ Redis client connected successfully...")
 }

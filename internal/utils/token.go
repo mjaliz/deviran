@@ -80,6 +80,6 @@ func ValidateToken(token string, publicKey string) (*TokenDetails, error) {
 
 	return &TokenDetails{
 		TokenUuid: fmt.Sprint(claims["token_uuid"]),
-		UserID:    claims["sub"].(int),
+		UserID:    int(claims["sub"].(float64)),
 	}, nil
 }

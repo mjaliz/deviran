@@ -33,14 +33,15 @@ func DeserializeUser(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var accessToken string
 		authorization := c.Request().Header.Get("Authorization")
-		cookieToken, err := c.Cookie("access_token")
-		if err != nil {
-			return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
-		}
 
 		if strings.HasPrefix(authorization, "Bearer ") {
 			accessToken = strings.TrimPrefix(authorization, "Bearer ")
-		} else if cookieToken.Value != "" {
+		}
+		if accessToken == "" {
+			cookieToken, err := c.Cookie("access_token")
+			if err != nil {
+				return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
+			}
 			accessToken = cookieToken.Value
 		}
 

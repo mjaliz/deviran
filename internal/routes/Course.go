@@ -6,5 +6,5 @@ import (
 )
 
 func CourseSubRoutes(course *echo.Group) {
-	course.POST("", handlers.Repo.CreateCourse)
+	course.POST("", handlers.CreateCourse)
 }
