@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/mjaliz/deviran/internal/constants"
 	"github.com/mjaliz/deviran/internal/initializers"
 	"github.com/mjaliz/deviran/internal/input"
 	"github.com/mjaliz/deviran/internal/message"
@@ -219,4 +220,55 @@ func RefreshAccessToken(c echo.Context) error {
 	})
 
 	return c.JSON(http.StatusOK, message.StatusOkMessage(accessTokenDetails.Token, ""))
+}
+
+func Logout(c echo.Context) error {
+	errMessage := "Token is invalid or session has expired"
+
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+	}
+
+	if refreshToken.Value == "" {
+		return c.JSON(http.StatusForbidden, message.StatusErrMessage(errMessage))
+	}
+
+	config, _ := initializers.LoadConfig(".")
+	ctx := context.TODO()
+
+	tokenClaims, err := utils.ValidateToken(refreshToken.Value, config.RefreshTokenPublicKey)
+	if err != nil {
+		return c.JSON(http.StatusForbidden, message.StatusErrMessage(err.Error()))
+	}
+
+	accessTokenUuid := c.Get(constants.EchoAccessTokenUuid).(string)
+	_, err = initializers.RedisClient.Del(ctx, tokenClaims.TokenUuid, accessTokenUuid).Result()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+	}
+
+	expired := time.Now().Add(-time.Hour * 24)
+	c.SetCookie(&http.Cookie{
+		Name:    "access_token",
+		Value:   "",
+		Expires: expired,
+	})
+	c.SetCookie(&http.Cookie{
+		Name:    "refresh_token",
+		Value:   "",
+		Expires: expired,
+	})
+	c.SetCookie(&http.Cookie{
+		Name:    "logged_in",
+		Value:   "",
+		Expires: expired,
+	})
+	return c.JSON(http.StatusOK, message.StatusOkMessage(nil, ""))
+}
+
+func GetMe(c echo.Context) error {
+	user := c.Get(constants.EchoUserAttribute).(models.UserResponse)
+
+	return c.JSON(http.StatusOK, message.StatusOkMessage(user, ""))
 }
