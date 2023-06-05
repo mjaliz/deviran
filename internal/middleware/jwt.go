@@ -12,22 +12,9 @@ import (
 	"github.com/mjaliz/deviran/internal/utils"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"strings"
 )
-
-func CheckAccessToken(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		jwtPayload, err := utils.ExtractTokenMetadata(c)
-		if err != nil {
-			log.Println("CheckAccessToken middleware failed", err.Error())
-			return c.JSON(http.StatusUnauthorized, message.StatusUnauthorizedMessage(""))
-		}
-		c.Set(constants.EchoUserIDAttribute, jwtPayload.UserId)
-		return next(c)
-	}
-}
 
 func DeserializeUser(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -49,9 +36,7 @@ func DeserializeUser(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, message.StatusErrMessage("You are not logged in"))
 		}
 
-		config, _ := initializers.LoadConfig(".")
-
-		tokenClaims, err := utils.ValidateToken(accessToken, config.AccessTokenPublicKey)
+		tokenClaims, err := utils.ValidateToken(accessToken, initializers.Config.AccessTokenPublicKey)
 		if err != nil {
 			return c.JSON(http.StatusForbidden, message.StatusErrMessage(err.Error()))
 		}

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Config struct {
+type AppConfig struct {
 	DBHost         string `mapstructure:"POSTGRES_HOST"`
 	DBUserName     string `mapstructure:"POSTGRES_USER"`
 	DBUserPassword string `mapstructure:"POSTGRES_PASSWORD"`
@@ -26,18 +26,41 @@ type Config struct {
 	RefreshTokenMaxAge     int           `mapstructure:"REFRESH_TOKEN_MAX_AGE"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
+var Config *AppConfig
+
+func LoadConfig(path string) error {
 	viper.AddConfigPath(path)
 	viper.SetConfigType("env")
 	viper.SetConfigName(".env")
-
 	viper.AutomaticEnv()
 
-	err = viper.ReadInConfig()
+	err := viper.ReadInConfig()
 	if err != nil {
-		return
+		return err
 	}
 
-	err = viper.Unmarshal(&config)
-	return
+	var appConfig AppConfig
+	err = viper.Unmarshal(&appConfig)
+	if err != nil {
+		return err
+	}
+	Config = &AppConfig{
+		DBHost:                 appConfig.DBHost,
+		DBUserName:             appConfig.DBUserName,
+		DBUserPassword:         appConfig.DBUserPassword,
+		DBName:                 appConfig.DBName,
+		DBPort:                 appConfig.DBPort,
+		ServerPort:             appConfig.ServerPort,
+		RedisUri:               appConfig.RedisUri,
+		RedisPassword:          appConfig.RedisPassword,
+		AccessTokenPrivateKey:  appConfig.AccessTokenPrivateKey,
+		AccessTokenPublicKey:   appConfig.AccessTokenPublicKey,
+		RefreshTokenPrivateKey: appConfig.RefreshTokenPrivateKey,
+		RefreshTokenPublicKey:  appConfig.RefreshTokenPublicKey,
+		AccessTokenExpiresIn:   appConfig.AccessTokenExpiresIn,
+		RefreshTokenExpiresIn:  appConfig.RefreshTokenExpiresIn,
+		AccessTokenMaxAge:      appConfig.AccessTokenMaxAge,
+		RefreshTokenMaxAge:     appConfig.RefreshTokenMaxAge,
+	}
+	return nil
 }

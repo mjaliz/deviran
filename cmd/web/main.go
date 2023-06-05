@@ -17,12 +17,12 @@ import (
 // @license.name Apache 2.0
 
 func init() {
-	configs, err := initializers.LoadConfig(".")
+	err := initializers.LoadConfig(".")
 	if err != nil {
 		log.Fatalln("Failed to load environment variables! \n", err.Error())
 	}
-	initializers.ConnectDB(&configs)
-	initializers.ConnectRedis(&configs)
+	initializers.ConnectDB(initializers.Config)
+	initializers.ConnectRedis(initializers.Config)
 }
 
 func main() {

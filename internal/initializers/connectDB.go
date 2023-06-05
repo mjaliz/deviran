@@ -13,7 +13,7 @@ import (
 
 var DB *gorm.DB
 
-func ConnectDB(config *Config) {
+func ConnectDB(config *AppConfig) {
 	var err error
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", config.DBHost, config.DBUserName, config.DBUserPassword, config.DBName, config.DBPort)
 

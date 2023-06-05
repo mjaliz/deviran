@@ -12,7 +12,7 @@ var (
 	Ctx         context.Context
 )
 
-func ConnectRedis(config *Config) {
+func ConnectRedis(config *AppConfig) {
 	Ctx = context.TODO()
 
 	RedisClient = redis.NewClient(&redis.Options{

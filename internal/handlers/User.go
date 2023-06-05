@@ -89,14 +89,12 @@ func SignIn(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
 
-	config, _ := initializers.LoadConfig(".")
-
-	accessTokenDetails, err := utils.CreateToken(user.ID, config.AccessTokenExpiresIn, config.AccessTokenPrivateKey)
+	accessTokenDetails, err := utils.CreateToken(user.ID, initializers.Config.AccessTokenExpiresIn, initializers.Config.AccessTokenPrivateKey)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
 	}
 
-	refreshTokenDetails, err := utils.CreateToken(user.ID, config.RefreshTokenExpiresIn, config.RefreshTokenPrivateKey)
+	refreshTokenDetails, err := utils.CreateToken(user.ID, initializers.Config.RefreshTokenExpiresIn, initializers.Config.RefreshTokenPrivateKey)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
 	}
@@ -119,7 +117,7 @@ func SignIn(c echo.Context) error {
 		Name:     "access_token",
 		Value:    *accessTokenDetails.Token,
 		Path:     "/",
-		MaxAge:   config.AccessTokenMaxAge * 60,
+		MaxAge:   initializers.Config.AccessTokenMaxAge * 60,
 		Secure:   false,
 		HttpOnly: true,
 		Domain:   "localhost",
@@ -129,7 +127,7 @@ func SignIn(c echo.Context) error {
 		Name:     "refresh_token",
 		Value:    *refreshTokenDetails.Token,
 		Path:     "/",
-		MaxAge:   config.RefreshTokenMaxAge * 60,
+		MaxAge:   initializers.Config.RefreshTokenMaxAge * 60,
 		Secure:   false,
 		HttpOnly: true,
 		Domain:   "localhost",
@@ -139,7 +137,7 @@ func SignIn(c echo.Context) error {
 		Name:     "logged_in",
 		Value:    "true",
 		Path:     "/",
-		MaxAge:   config.AccessTokenMaxAge * 60,
+		MaxAge:   initializers.Config.AccessTokenMaxAge * 60,
 		Secure:   false,
 		HttpOnly: false,
 		Domain:   "localhost",
@@ -160,9 +158,7 @@ func RefreshAccessToken(c echo.Context) error {
 		return c.JSON(http.StatusForbidden, message.StatusErrMessage(errMessage))
 	}
 
-	config, _ := initializers.LoadConfig(".")
-
-	tokenClaims, err := utils.ValidateToken(refreshToken.Value, config.RefreshTokenPublicKey)
+	tokenClaims, err := utils.ValidateToken(refreshToken.Value, initializers.Config.RefreshTokenPublicKey)
 	if err != nil {
 		return c.JSON(http.StatusForbidden, message.StatusErrMessage(err.Error()))
 	}
@@ -183,7 +179,7 @@ func RefreshAccessToken(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
 	}
 
-	accessTokenDetails, err := utils.CreateToken(user.ID, config.AccessTokenExpiresIn, config.AccessTokenPrivateKey)
+	accessTokenDetails, err := utils.CreateToken(user.ID, initializers.Config.AccessTokenExpiresIn, initializers.Config.AccessTokenPrivateKey)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, message.StatusErrMessage(err.Error()))
 	}
@@ -200,7 +196,7 @@ func RefreshAccessToken(c echo.Context) error {
 		Name:     "access_token",
 		Value:    *accessTokenDetails.Token,
 		Path:     "/",
-		MaxAge:   config.AccessTokenMaxAge * 60,
+		MaxAge:   initializers.Config.AccessTokenMaxAge * 60,
 		Secure:   false,
 		HttpOnly: true,
 		Domain:   "localhost",
@@ -210,7 +206,7 @@ func RefreshAccessToken(c echo.Context) error {
 		Name:     "logged_in",
 		Value:    "true",
 		Path:     "/",
-		MaxAge:   config.AccessTokenMaxAge * 60,
+		MaxAge:   initializers.Config.AccessTokenMaxAge * 60,
 		Secure:   false,
 		HttpOnly: false,
 		Domain:   "localhost",
@@ -232,9 +228,7 @@ func Logout(c echo.Context) error {
 		return c.JSON(http.StatusForbidden, message.StatusErrMessage(errMessage))
 	}
 
-	config, _ := initializers.LoadConfig(".")
-
-	tokenClaims, err := utils.ValidateToken(refreshToken.Value, config.RefreshTokenPublicKey)
+	tokenClaims, err := utils.ValidateToken(refreshToken.Value, initializers.Config.RefreshTokenPublicKey)
 	if err != nil {
 		return c.JSON(http.StatusForbidden, message.StatusErrMessage(err.Error()))
 	}
