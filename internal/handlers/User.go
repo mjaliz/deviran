@@ -220,8 +220,7 @@ func Logout(c echo.Context) error {
 
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
-		log.Println("reading refresh token from cookie failed", err.Error())
-		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+		return c.JSON(http.StatusForbidden, message.StatusErrMessage(err.Error()))
 	}
 
 	if refreshToken.Value == "" {
