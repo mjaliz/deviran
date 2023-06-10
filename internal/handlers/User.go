@@ -86,7 +86,7 @@ func SignIn(c echo.Context) error {
 
 	err = utils.CompareHashAndPass(user.Password, payload.Password)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, message.StatusInternalServerErrorMessage())
+		return c.JSON(http.StatusInternalServerError, message.StatusForbiddenMessage("Invalid email or password"))
 	}
 
 	accessTokenDetails, err := utils.CreateToken(user.ID, initializers.Config.AccessTokenExpiresIn, initializers.Config.AccessTokenPrivateKey)
@@ -143,7 +143,9 @@ func SignIn(c echo.Context) error {
 		Domain:   "localhost",
 	})
 
-	return c.JSON(http.StatusOK, message.StatusOkMessage(output.SignIn{AccessToken: *accessTokenDetails.Token}, ""))
+	return c.JSON(http.StatusOK, message.StatusOkMessage(output.SignIn{
+		AccessToken:  *accessTokenDetails.Token,
+		RefreshToken: *refreshTokenDetails.Token}, ""))
 }
 
 func RefreshAccessToken(c echo.Context) error {
