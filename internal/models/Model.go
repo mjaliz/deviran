@@ -7,10 +7,10 @@ import (
 )
 
 type Model struct {
-	ID        int            `gorm:"primarykey"`
-	CreatedAt *time.Time     `gorm:"not null;default:now()"`
-	UpdatedAt *time.Time     `gorm:"not null;default:now()"`
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	ID        int            `gorm:"primarykey" json:"id"`
+	CreatedAt *time.Time     `gorm:"not null;default:now()" json:"created_at"`
+	UpdatedAt *time.Time     `gorm:"not null;default:now()" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 }
 
 var validate = validator.New()
