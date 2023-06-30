@@ -36,8 +36,5 @@ func main() {
 	courseGroup := e.Group("/course", customMiddleware.DeserializeUser)
 	routes.CourseSubRoutes(courseGroup)
 
-	currencyGroup := e.Group("/currencies")
-	routes.CurrencySubRoutes(currencyGroup)
-
 	e.Logger.Info(e.Start(":1323"))
 }

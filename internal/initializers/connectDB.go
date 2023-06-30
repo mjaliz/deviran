@@ -3,12 +3,10 @@ package initializers
 import (
 	"fmt"
 	"github.com/mjaliz/deviran/internal/models"
-	"log"
-	"os"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"log"
 )
 
 var DB *gorm.DB
@@ -20,16 +18,14 @@ func ConnectDB(config *AppConfig) {
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to the Database! \n", err.Error())
-		os.Exit(1)
 	}
 
 	DB.Logger = logger.Default.LogMode(logger.Info)
 
 	log.Println("Running Migrations")
-	err = DB.AutoMigrate(&models.User{}, &models.Currency{}, &models.CurrencyPrice{})
+	err = DB.AutoMigrate(&models.User{})
 	if err != nil {
 		log.Fatal("Migration Failed:  \n", err.Error())
-		os.Exit(1)
 	}
 
 	log.Println("🚀 Connected Successfully to the Database")
